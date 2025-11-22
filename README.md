@@ -8,13 +8,13 @@
 
 ```mermaid
 graph TD
-    User[User (Browser)] -->|HTTP| WebUI[Web UI (React/Nginx)]
-    WebUI -->|Get Products| Node[Node.js Service (Inventory)]
-    WebUI -->|Create Order| Python[Python Service (Order)]
+    User["User (Browser)"] -->|HTTP| WebUI["Web UI (React/Nginx)"]
+    WebUI -->|Get Products| Node["Node.js Service (Inventory)"]
+    WebUI -->|Create Order| Python["Python Service (Order)"]
     Python -->|Reserve Inventory| Node
-    Node -->|Calculate Price| Go[Go Service (Pricing)]
-    Python -->|Ship Item| Shipping[Shipping Service (Python)]
-    Python -->|Send Notification| Java[Java Service (Notification)]
+    Node -->|Calculate Price| Go["Go Service (Pricing)"]
+    Python -->|Ship Item| Shipping["Shipping Service (Python)"]
+    Python -->|Send Notification| Java["Java Service (Notification)"]
     
     subgraph Observability
         Collector[OTLP Collector]
