@@ -115,7 +115,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
         loki-external-labels: "service=python-service,job=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -149,7 +149,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
         loki-external-labels: "service=nodejs-service,job=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
@@ -179,7 +179,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
         loki-external-labels: "service=go-service,job=docker"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
@@ -215,7 +215,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
         loki-external-labels: "service=fraud-service,job=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
@@ -242,7 +242,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
         loki-external-labels: "service=payment-service,job=docker"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/health"]
@@ -279,7 +279,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
         loki-external-labels: "service=java-service,job=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
@@ -315,7 +315,7 @@ services:
     logging:
       driver: loki
       options:
-        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-url: "http://loki:3100/loki/api/v1/push"
         loki-external-labels: "service=shipping-service,job=docker"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
