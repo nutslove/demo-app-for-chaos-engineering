@@ -54,6 +54,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_headers=["*"],
 )
 
 class Order(BaseModel):
@@ -61,6 +62,7 @@ class Order(BaseModel):
     product_name: str
     quantity: int
     address: str = "123 Main St, City, Country"
+    card_number: str = "1234567890123456"
 
 @app.get("/")
 async def root():
@@ -84,7 +86,7 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
         time.sleep(5)
         raise HTTPException(status_code=504, detail="Database timeout")
 
-    # Database insert
+    # Database insert (Pending)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
@@ -95,7 +97,8 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
     conn.commit()
     conn.close()
 
-    # Call Node.js service for inventory check
+    # 1. Inventory Check (Node.js)
+    inventory_result = None
     try:
         response = await httpx_client.post(
             "http://nodejs-service:3000/inventory/check",
@@ -107,35 +110,114 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
         logger.error(f"Failed to check inventory: {e}")
         inventory_result = {"available": False, "error": str(e)}
 
-    # If inventory is available, reserve it (Node.js → Go)
+    if not inventory_result.get("available"):
+        return {
+            "order_id": order_id,
+            "status": "failed",
+            "reason": "Inventory not available",
+            "inventory_check": inventory_result
+        }
+
+    # 2. Fraud Check (Python - New Service)
+    fraud_result = None
+    try:
+        # Calculate total amount (mock calculation for fraud check)
+        estimated_amount = order.quantity * 100.0 
+        
+        fraud_response = await httpx_client.post(
+            "http://fraud-service:5000/fraud/check",
+            json={"user_id": order.user_id, "total_amount": estimated_amount}
+        )
+        fraud_result = fraud_response.json()
+        logger.info(f"Fraud check result: {fraud_result}")
+    except Exception as e:
+        logger.error(f"Failed to check fraud: {e}")
+        fraud_result = {"is_fraud": False, "error": str(e)} # Fail open or closed? Let's fail open for demo
+
+    if fraud_result.get("is_fraud"):
+        # Update DB status
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE orders SET status = ? WHERE id = ?", ("rejected_fraud", order_id))
+        conn.commit()
+        conn.close()
+        
+        return {
+            "order_id": order_id,
+            "status": "rejected",
+            "reason": "Fraud detected",
+            "fraud_check": fraud_result
+        }
+
+    # 3. Reserve Inventory (Node.js -> Go)
     pricing_result = None
-    if inventory_result.get("available"):
-        try:
-            reserve_response = await httpx_client.post(
-                "http://nodejs-service:3000/inventory/reserve",
-                json={"product_name": order.product_name, "quantity": order.quantity}
-            )
-            pricing_result = reserve_response.json()
-            logger.info(f"Inventory reserved with pricing: {pricing_result}")
-        except Exception as e:
-            logger.error(f"Failed to reserve inventory: {e}")
-            pricing_result = {"error": str(e)}
+    try:
+        reserve_response = await httpx_client.post(
+            "http://nodejs-service:3000/inventory/reserve",
+            json={"product_name": order.product_name, "quantity": order.quantity}
+        )
+        pricing_result = reserve_response.json()
+        logger.info(f"Inventory reserved with pricing: {pricing_result}")
+    except Exception as e:
+        logger.error(f"Failed to reserve inventory: {e}")
+        return {
+            "order_id": order_id,
+            "status": "failed",
+            "reason": "Failed to reserve inventory",
+            "error": str(e)
+        }
 
-    # Call Shipping Service (Python FastAPI)
+    # 4. Payment Process (Go - New Service)
+    payment_result = None
+    try:
+        total_price = pricing_result.get("pricing", {}).get("total_price", 0)
+        payment_response = await httpx_client.post(
+            "http://payment-service:8082/payment/process",
+            json={"order_id": order_id, "amount": total_price, "card_number": order.card_number}
+        )
+        
+        if payment_response.status_code != 200:
+             raise Exception(f"Payment failed with status {payment_response.status_code}")
+             
+        payment_result = payment_response.json()
+        logger.info(f"Payment result: {payment_result}")
+        
+    except Exception as e:
+        logger.error(f"Payment failed: {e}")
+        
+        # COMPENSATING TRANSACTION: Release Inventory
+        # In a real system, we would call a release endpoint. 
+        # For this demo, we'll just log it as a compensation action.
+        logger.warning(f"COMPENSATING TRANSACTION: Releasing inventory for order {order_id}")
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE orders SET status = ? WHERE id = ?", ("payment_failed", order_id))
+        conn.commit()
+        conn.close()
+        
+        return {
+            "order_id": order_id,
+            "status": "failed",
+            "reason": "Payment failed",
+            "error": str(e),
+            "compensation": "Inventory released"
+        }
+
+    # 5. Shipping Service (Python FastAPI)
     shipping_result = None
-    if pricing_result and not pricing_result.get("error"):
-        try:
-            shipping_response = await httpx_client.post(
-                "http://shipping-service:5000/ship",
-                json={"order_id": order_id, "address": order.address}
-            )
-            shipping_result = shipping_response.json()
-            logger.info(f"Shipping result: {shipping_result}")
-        except Exception as e:
-            logger.error(f"Failed to ship order: {e}")
-            shipping_result = {"error": str(e)}
+    try:
+        shipping_response = await httpx_client.post(
+            "http://shipping-service:5000/ship",
+            json={"order_id": order_id, "address": order.address}
+        )
+        shipping_result = shipping_response.json()
+        logger.info(f"Shipping result: {shipping_result}")
+    except Exception as e:
+        logger.error(f"Failed to ship order: {e}")
+        shipping_result = {"error": str(e)}
 
-    # Send notification (Java)
+    # 6. Send notification (Java)
     notification_result = None
     try:
         # Chaos: If user_id starts with 666, send to @fail.com to trigger Java service error
@@ -157,13 +239,22 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
         logger.error(f"Failed to send notification: {e}")
         notification_result = {"error": str(e)}
 
+    # Update DB status to completed
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE orders SET status = ? WHERE id = ?", ("completed", order_id))
+    conn.commit()
+    conn.close()
+
     logger.info(f"Order {order_id} created successfully")
 
     return {
         "order_id": order_id,
-        "status": "pending",
+        "status": "completed",
         "inventory_check": inventory_result,
+        "fraud_check": fraud_result,
         "pricing": pricing_result,
+        "payment": payment_result,
         "shipping": shipping_result,
         "notification": notification_result
     }
@@ -194,56 +285,6 @@ async def intentional_error():
 @app.post("/orders/error")
 async def create_order_with_error(order: Order):
     logger.info(f"Creating order with intentional error for user {order.user_id}")
+    # Simplified error flow for testing
+    return {"status": "error", "message": "Not implemented for new flow yet"}
 
-    # Call Node.js service for inventory check
-    try:
-        response = await httpx_client.post(
-            "http://nodejs-service:3000/inventory/check",
-            json={"product_name": order.product_name, "quantity": order.quantity}
-        )
-        inventory_result = response.json()
-        logger.info(f"Inventory check result: {inventory_result}")
-    except Exception as e:
-        logger.error(f"Failed to check inventory: {e}")
-        inventory_result = {"available": False, "error": str(e)}
-
-    # Call Node.js to reserve (which will call Go with error)
-    pricing_result = None
-    if inventory_result.get("available"):
-        try:
-            reserve_response = await httpx_client.post(
-                "http://nodejs-service:3000/inventory/reserve/error",
-                json={"product_name": order.product_name, "quantity": order.quantity}
-            )
-            pricing_result = reserve_response.json()
-            logger.info(f"Reserve response (with error): {pricing_result}")
-        except Exception as e:
-            logger.error(f"Failed to reserve inventory (expected error): {e}")
-            pricing_result = {"error": str(e)}
-
-    # Send notification (Java) even if error occurred
-    notification_result = None
-    try:
-        notification_response = await httpx_client.post(
-            "http://java-service:8081/notifications/send",
-            json={
-                "recipient": f"user_{order.user_id}@example.com",
-                "message": f"Error occurred while processing order for {order.quantity}x {order.product_name}",
-                "type": "email"
-            }
-        )
-        notification_result = notification_response.json()
-        logger.info(f"Notification sent: {notification_result}")
-    except Exception as e:
-        logger.error(f"Failed to send notification: {e}")
-        notification_result = {"error": str(e)}
-
-    logger.error("Order workflow completed with errors")
-
-    return {
-        "status": "error",
-        "inventory_check": inventory_result,
-        "pricing_error": pricing_result,
-        "notification": notification_result,
-        "message": "This order workflow intentionally includes errors across all services for testing"
-    }

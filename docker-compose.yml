@@ -107,6 +107,9 @@ services:
     depends_on:
       - otel-collector
       - loki
+      - nodejs-service
+      - fraud-service
+      - payment-service
     networks:
       - otel-network
     logging:
@@ -180,6 +183,69 @@ services:
         loki-external-labels: "service=go-service,job=docker"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Fraud Service (Python)
+  fraud-service:
+    build:
+      context: ./fraud-service
+      dockerfile: Dockerfile
+      no_cache: true
+    container_name: fraud-service
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=fraud-service
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_TRACES_SAMPLER=always_on
+      - OTEL_METRICS_EXEMPLAR_FILTER=always_on
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+      - OTEL_PYTHON_LOG_CORRELATION=true
+      - OTEL_PYTHON_LOG_FORMAT=%(asctime)s [%(levelname)s] trace_id=%(otelTraceID)s span_id=%(otelSpanID)s - %(message)s
+    ports:
+      - "5001:5000"
+    depends_on:
+      - otel-collector
+      - loki
+    networks:
+      - otel-network
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-external-labels: "service=fraud-service,job=docker"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Payment Service (Go)
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+      no_cache: true
+    container_name: payment-service
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    ports:
+      - "8082:8082"
+    depends_on:
+      - otel-collector
+      - loki
+    networks:
+      - otel-network
+    logging:
+      driver: loki
+      options:
+        loki-url: "http://localhost:3100/loki/api/v1/push"
+        loki-external-labels: "service=payment-service,job=docker"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/health"]
       interval: 30s
       timeout: 10s
       retries: 3
