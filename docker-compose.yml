@@ -13,7 +13,7 @@ services:
       - "4318:4318"   # OTLP HTTP receiver
       - "8888:8888"   # Metrics for the collector itself
     networks:
-      - otel-network
+      - shared-network
 
   # Grafana Tempo - Distributed Tracing Backend
   tempo:
@@ -28,7 +28,7 @@ services:
       - "4319:4319"   # OTLP gRPC receiver (Changed to avoid conflict with OTEL Collector from default 4317)
       - "4320:4320"   # OTLP HTTP receiver（Changed to avoid conflict with OTEL Collector from default 4318)
     networks:
-      - otel-network
+      - shared-network
 
   # Grafana Loki - Log Aggregation
   loki:
@@ -41,7 +41,7 @@ services:
     ports:
       - "3100:3100"
     networks:
-      - otel-network
+      - shared-network
 
   # Prometheus - Metrics Backend
   prometheus:
@@ -58,7 +58,7 @@ services:
     ports:
       - "9090:9090"
     networks:
-      - otel-network
+      - shared-network
 
   # Grafana - Visualization
   grafana:
@@ -74,7 +74,7 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - otel-network
+      - shared-network
     depends_on:
       - tempo
       - loki
@@ -111,7 +111,7 @@ services:
       - fraud-service
       - payment-service
     networks:
-      - otel-network
+      - shared-network
     logging:
       driver: loki
       options:
@@ -145,7 +145,7 @@ services:
       - otel-collector
       - loki
     networks:
-      - otel-network
+      - shared-network
     logging:
       driver: loki
       options:
@@ -175,7 +175,7 @@ services:
       - otel-collector
       - loki
     networks:
-      - otel-network
+      - shared-network
     logging:
       driver: loki
       options:
@@ -211,7 +211,7 @@ services:
       - otel-collector
       - loki
     networks:
-      - otel-network
+      - shared-network
     logging:
       driver: loki
       options:
@@ -238,7 +238,7 @@ services:
       - otel-collector
       - loki
     networks:
-      - otel-network
+      - shared-network
     logging:
       driver: loki
       options:
@@ -275,7 +275,7 @@ services:
       - otel-collector
       - loki
     networks:
-      - otel-network
+      - shared-network
     logging:
       driver: loki
       options:
@@ -311,7 +311,7 @@ services:
       - otel-collector
       - loki
     networks:
-      - otel-network
+      - shared-network
     logging:
       driver: loki
       options:
@@ -332,16 +332,17 @@ services:
     ports:
       - "80:80"
     networks:
-      - otel-network
+      - shared-network
     depends_on:
       - python-service
       - nodejs-service
       - go-service
       - java-service
 
+## 事前に`docker network create shared-network`でネットワークを作成し、それを使うように修正
 networks:
-  otel-network:
-    driver: bridge
+  shared-network:
+    external: true
 
 volumes:
   prometheus-data:
