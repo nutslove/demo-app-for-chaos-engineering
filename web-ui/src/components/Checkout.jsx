@@ -70,6 +70,18 @@ const Checkout = ({ cart, clearCart }) => {
             <div className="mb-4">
               <label className="block text-gray-700 mb-2">User ID</label>
               <input
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className="w-full border p-2 rounded"
+                required
+                type="number"
+              />
+              <p className="text-xs text-gray-500 mt-1">Tip: Ends with 9 for DB timeout, starts with 4 for Fraud, 666 for Email fail.</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">Address</label>
+              <input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="w-full border p-2 rounded"
