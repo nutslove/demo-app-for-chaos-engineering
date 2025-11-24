@@ -72,16 +72,16 @@ async def root():
 async def create_order(order: Order, x_chaos_scenario: str | None = Header(default=None)):
     logger.info(f"Creating order for user {order.user_id}")
 
-    # Natural Chaos Injection
+    # Handle system load scenarios
     # 1. Header-based: High Load
     if x_chaos_scenario == "high-load":
         latency = random.uniform(0.5, 2.0)
-        logger.warning(f"[Chaos Error] Simulating high load: sleeping for {latency:.2f}s")
+        logger.warning(f"[Error] System under high load: processing delayed for {latency:.2f}s")
         time.sleep(latency)
 
-    # 2. Data-based: User ID ending in 9 -> Database Timeout (simulated)
+    # 2. Data-based: User ID ending in 9 -> Database Timeout
     if str(order.user_id).endswith("9"):
-        logger.error(f"[Chaos Error] Simulating DB timeout for user {order.user_id}")
+        logger.error(f"[Error] Database connection timeout for user {order.user_id}")
         time.sleep(5)
         raise HTTPException(status_code=504, detail="Database timeout")
 
@@ -141,7 +141,7 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
         conn.commit()
         conn.close()
         
-        logger.error(f"[Chaos Error] Fraud detected: {fraud_result}")
+        logger.error(f"[Error] Fraud detected: {fraud_result}")
 
         return {
             "order_id": order_id,
@@ -221,7 +221,7 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
     # 6. Send notification (Java)
     notification_result = None
     try:
-        # Chaos: If user_id starts with 666, send to @fail.com to trigger Java service error
+        # Handle problematic user IDs: If user_id starts with 666, use fail.com domain
         email_domain = "example.com"
         if str(order.user_id).startswith("666"):
             email_domain = "fail.com"

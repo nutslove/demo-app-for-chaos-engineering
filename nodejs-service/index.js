@@ -56,16 +56,16 @@ app.post('/inventory/check', (req, res) => {
   const { product_name, quantity } = req.body;
   const chaosScenario = req.header('X-Chaos-Scenario');
 
-  // Chaos Injection
+  // Handle system load scenarios
   if (chaosScenario === 'high-load') {
     const latency = Math.random() * 1500 + 500; // 500-2000ms
-    logger.error(`[Chaos Error] Simulating high load: sleeping for ${latency.toFixed(0)}ms`);
+    logger.error(`[Error] System under high load: processing delayed for ${latency.toFixed(0)}ms`);
     const start = Date.now();
     while (Date.now() - start < latency) { }
   }
 
   if (product_name && product_name.includes('Legacy')) {
-    logger.error('[Chaos Error] Simulating legacy system slowness');
+    logger.error('[Error] Legacy system response timeout');
     const start = Date.now();
     while (Date.now() - start < 2000) { }
   }

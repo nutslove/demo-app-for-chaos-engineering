@@ -35,22 +35,22 @@ async def check_fraud(request: FraudCheckRequest, x_chaos_scenario: str | None =
         span.set_attribute("user.id", request.user_id)
         span.set_attribute("amount", request.total_amount)
 
-        # Chaos: High Latency (Complex ML Model Simulation)
+        # Handle high latency scenarios (Complex ML Model)
         if x_chaos_scenario == "high-load" or x_chaos_scenario == "fraud-latency":
             latency = random.uniform(1.0, 3.0)
-            logger.error(f"[Chaos Error] Simulating complex ML model latency: {latency:.2f}s")
+            logger.error(f"[Error] ML model processing timeout: {latency:.2f}s")
             time.sleep(latency)
 
-        # Chaos: False Positives
+        # Check for suspicious user patterns
         # Reject orders from users with ID starting with '4' (e.g., 4, 42, 404)
         if str(request.user_id).startswith("4"):
-            logger.error(f"[Chaos Error] Fraud detected for user {request.user_id} (Simulated False Positive)")
+            logger.error(f"[Error] Fraud detected for user {request.user_id}")
             span.set_attribute("fraud.detected", True)
             return {"is_fraud": True, "reason": "Suspicious user activity pattern detected"}
 
-        # Chaos: Random Rejection for high amounts (> 10000)
+        # High value transaction risk check
         if request.total_amount > 10000 and random.random() < 0.3:
-             logger.error(f"[Chaos Error] Fraud detected for high amount {request.total_amount}")
+             logger.error(f"[Error] Fraud detected for high amount {request.total_amount}")
              span.set_attribute("fraud.detected", True)
              return {"is_fraud": True, "reason": "High value transaction risk"}
 

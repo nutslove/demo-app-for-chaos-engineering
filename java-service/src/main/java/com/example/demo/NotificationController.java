@@ -39,15 +39,15 @@ public class NotificationController {
         String message = (String) request.get("message");
         String type = (String) request.get("type");
 
-        // Chaos Injection
+        // Handle high load scenarios
         if ("high-load".equals(chaosScenario)) {
-            logger.error("[Chaos Error] Simulating high load: sleeping for 2s");
+            logger.error("[Error] System experiencing high load: processing delayed");
             try { Thread.sleep(2000); } catch (InterruptedException e) {}
         }
 
         if (recipient != null && recipient.endsWith("@fail.com")) {
-            logger.error("[Chaos Error] Simulating email provider outage for {}", recipient);
-            throw new RuntimeException("Simulated email provider outage");
+            logger.error("[Error] Email provider connection failed for {}", recipient);
+            throw new RuntimeException("Email provider connection failed");
         }
 
         logger.info("Sending notification to {}", recipient);

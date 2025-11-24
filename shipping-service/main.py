@@ -41,17 +41,17 @@ async def health():
 async def ship_order(request: Request, shipping_req: ShippingRequest):
     logger.info(f"Received shipping request for order {shipping_req.order_id}")
     
-    # Chaos Injection: Latency
-    # If address contains "SLOW", inject latency
+    # Address validation: Latency
+    # If address contains "SLOW", processing delayed
     if "SLOW" in shipping_req.address.upper():
-        logger.error("[Chaos Error] Injecting latency for SLOW address")
+        logger.error("[Error] Shipping carrier system timeout")
         time.sleep(2)
-        
-    # Chaos Injection: Error
+
+    # Address validation: Error
     # If address contains "ERROR", return 500
     if "ERROR" in shipping_req.address.upper():
-        logger.error("[Chaos Error] Injecting error for ERROR address")
-        raise HTTPException(status_code=500, detail="Shipping failed due to invalid address (simulated)")
+        logger.error("[Error] Invalid shipping address format")
+        raise HTTPException(status_code=500, detail="Shipping failed due to invalid address")
 
     shipping_cost = 5.00
     if "INTERNATIONAL" in shipping_req.address.upper():
