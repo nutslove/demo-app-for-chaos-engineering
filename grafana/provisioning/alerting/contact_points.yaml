@@ -1,0 +1,11 @@
+apiVersion: 1
+contactPoints:
+    - orgId: 1
+      name: Webhook
+      receivers:
+        - uid: ff4zhfu8rery8e
+          type: webhook
+          settings:
+            httpMethod: POST
+            url: http://alert-receiver:8089/webhook
+          disableResolveMessage: false
