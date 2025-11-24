@@ -241,11 +241,12 @@ func main() {
 		chaosScenario := c.GetHeader("X-Chaos-Scenario")
 		if chaosScenario == "high-load" {
 			// Simulate CPU load or latency
+			emitLog(ctx, otlog.SeverityError, fmt.Sprintf("[Chaos Error] Simulating high load - trace_id: %s", traceID))
 			time.Sleep(time.Duration(rand.Intn(1500)+500) * time.Millisecond)
 		}
 
 		if req.ProductName == "Coupon" {
-			emitLog(ctx, otlog.SeverityError, fmt.Sprintf("Invalid coupon code - trace_id: %s", traceID))
+			emitLog(ctx, otlog.SeverityError, fmt.Sprintf("[Chaos Error] Invalid coupon code - trace_id: %s", traceID))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Pricing service failure: Invalid coupon configuration"})
 			return
 		}

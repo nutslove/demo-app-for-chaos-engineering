@@ -44,13 +44,13 @@ async def ship_order(request: Request, shipping_req: ShippingRequest):
     # Chaos Injection: Latency
     # If address contains "SLOW", inject latency
     if "SLOW" in shipping_req.address.upper():
-        logger.warning("Injecting latency for SLOW address")
+        logger.error("[Chaos Error] Injecting latency for SLOW address")
         time.sleep(2)
         
     # Chaos Injection: Error
     # If address contains "ERROR", return 500
     if "ERROR" in shipping_req.address.upper():
-        logger.error("Injecting error for ERROR address")
+        logger.error("[Chaos Error] Injecting error for ERROR address")
         raise HTTPException(status_code=500, detail="Shipping failed due to invalid address (simulated)")
 
     shipping_cost = 5.00

@@ -41,12 +41,12 @@ public class NotificationController {
 
         // Chaos Injection
         if ("high-load".equals(chaosScenario)) {
-            logger.warn("Simulating high load: sleeping for 2s");
+            logger.error("[Chaos Error] Simulating high load: sleeping for 2s");
             try { Thread.sleep(2000); } catch (InterruptedException e) {}
         }
 
         if (recipient != null && recipient.endsWith("@fail.com")) {
-            logger.error("Simulating email provider outage for {}", recipient);
+            logger.error("[Chaos Error] Simulating email provider outage for {}", recipient);
             throw new RuntimeException("Simulated email provider outage");
         }
 

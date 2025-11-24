@@ -76,12 +76,12 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
     # 1. Header-based: High Load
     if x_chaos_scenario == "high-load":
         latency = random.uniform(0.5, 2.0)
-        logger.warning(f"Simulating high load: sleeping for {latency:.2f}s")
+        logger.warning(f"[Chaos Error] Simulating high load: sleeping for {latency:.2f}s")
         time.sleep(latency)
 
     # 2. Data-based: User ID ending in 9 -> Database Timeout (simulated)
     if str(order.user_id).endswith("9"):
-        logger.error(f"Simulating DB timeout for user {order.user_id}")
+        logger.error(f"[Chaos Error] Simulating DB timeout for user {order.user_id}")
         time.sleep(5)
         raise HTTPException(status_code=504, detail="Database timeout")
 
@@ -141,6 +141,8 @@ async def create_order(order: Order, x_chaos_scenario: str | None = Header(defau
         conn.commit()
         conn.close()
         
+        logger.error(f"[Chaos Error] Fraud detected: {fraud_result}")
+
         return {
             "order_id": order_id,
             "status": "rejected",

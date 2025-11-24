@@ -59,13 +59,13 @@ app.post('/inventory/check', (req, res) => {
   // Chaos Injection
   if (chaosScenario === 'high-load') {
     const latency = Math.random() * 1500 + 500; // 500-2000ms
-    logger.warn(`Simulating high load: sleeping for ${latency.toFixed(0)}ms`);
+    logger.error(`[Chaos Error] Simulating high load: sleeping for ${latency.toFixed(0)}ms`);
     const start = Date.now();
     while (Date.now() - start < latency) { }
   }
 
   if (product_name && product_name.includes('Legacy')) {
-    logger.warn('Simulating legacy system slowness');
+    logger.error('[Chaos Error] Simulating legacy system slowness');
     const start = Date.now();
     while (Date.now() - start < 2000) { }
   }

@@ -166,7 +166,7 @@ func main() {
 		// Chaos: Gateway Timeout
 		if chaosScenario == "payment-timeout" || chaosScenario == "black-friday" {
 			if rand.Float32() < 0.3 { // 30% chance
-				emitLog(ctx, otlog.SeverityWarn, fmt.Sprintf("Simulating payment gateway timeout - trace_id: %s", traceID))
+				emitLog(ctx, otlog.SeverityError, fmt.Sprintf("[Chaos Error] Simulating payment gateway timeout - trace_id: %s", traceID))
 				time.Sleep(5 * time.Second)
 				c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Payment gateway timed out"})
 				return
@@ -175,7 +175,7 @@ func main() {
 
 		// Chaos: Payment Declined (Card number ending in 00)
 		if len(req.CardNumber) >= 2 && req.CardNumber[len(req.CardNumber)-2:] == "00" {
-			emitLog(ctx, otlog.SeverityWarn, fmt.Sprintf("Payment declined for card ending in 00 - trace_id: %s", traceID))
+			emitLog(ctx, otlog.SeverityError, fmt.Sprintf("[Chaos Error] Payment declined for card ending in 00 - trace_id: %s", traceID))
 			c.JSON(http.StatusPaymentRequired, gin.H{"error": "Payment declined by issuer"})
 			return
 		}
